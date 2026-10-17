@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import './styling/timetable.css'
-import { weeklyTimetableMock } from '../MockData/WeeklyTimeTable';
 import { useAuth } from '../context/Auth';
 import api from '../src/api';
+import ScheduleGenerator from './ScheduleGenerator';
+import WhatIfPanel from './WhatIfPanel';
 
 const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const dayKeys = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
@@ -39,6 +40,7 @@ const getSubjectMap = (rows) => {
     row.schedule.forEach((cell) => {
       if (!cell || cell === "covered") return;
       cell.forEach((course) => {
+        if (course.isBreak) return;
         if (map.has(course.courseCode)) return;
         map.set(course.courseCode, {
           ...course,
@@ -83,6 +85,7 @@ const normalizeCourse = (slot) => ({
   program: slot.program,
   source: slot.source,
   rawText: slot.rawText,
+  isBreak: Boolean(slot.isBreak),
   groups: parseGroupNumbers(slot),
   isLab: typeof slot.courseCode === "string" && slot.courseCode.includes("/")
 });
@@ -156,13 +159,17 @@ const addHours = (time, hours) => {
 export default function TimeTable(props) {
   const { user } = useAuth();
   const [importedSchedules, setImportedSchedules] = useState([]);
-  const [loaded, setLoaded] = useState(false);
+  const [loadedScope, setLoadedScope] = useState("");
   const [loadError, setLoadError] = useState("");
+  const [timetableOptions, setTimetableOptions] = useState({ programs: [], semesters: [], batches: [], sections: [] });
+  const [optionsLoading, setOptionsLoading] = useState(true);
+  const [selectedProgram, setSelectedProgram] = useState("");
+  const [selectedSemester, setSelectedSemester] = useState("");
+  const [selectedBatch, setSelectedBatch] = useState("");
+  const [selectedSection, setSelectedSection] = useState("all");
+  const [selectedDate, setSelectedDate] = useState("");
 
   const isAdmin = user?.role === "admin";
-
-  // --- Group filter (labs split into parallel Group 1 / Group 2 / ... rooms) ---
-  const [groupFilter, setGroupFilter] = useState("all");
 
   // --- Edit / delete existing slot ---
   const [editingCourse, setEditingCourse] = useState(null);
@@ -191,52 +198,76 @@ export default function TimeTable(props) {
   }, [isAdmin]);
 
   useEffect(() => {
-    if (!user) {
-      setImportedSchedules([]);
-      setLoaded(true);
-      setLoadError("");
-      return;
-    }
-
-    setLoaded(false);
-    api
-      .get("/timetable/imported/weekly")
+    let cancelled = false;
+    api.get("/timetable/imported/options")
       .then((response) => {
-        setImportedSchedules(response.data.slots || []);
+        if (cancelled) return;
+        const options = response.data;
+        setTimetableOptions(options);
+        if (user?.role === "admin") {
+          setSelectedProgram("");
+          setSelectedSemester("");
+          setSelectedBatch("");
+        } else {
+          const ownScope = options.batches.find((entry) => entry.batch === user?.batch && entry.semester === user?.semester);
+          setSelectedProgram(ownScope?.program || "");
+          setSelectedSemester(ownScope?.semester || "");
+          setSelectedBatch(ownScope?.batch || "");
+        }
         setLoadError("");
       })
       .catch(() => {
-        setImportedSchedules([]);
-        setLoadError("Unable to load timetable data from the database.");
+        if (!cancelled) setLoadError("Unable to load timetable choices from the database.");
       })
       .finally(() => {
-        setLoaded(true);
+        if (!cancelled) setOptionsLoading(false);
       });
+    return () => { cancelled = true; };
   }, [user]);
 
-  const data = importedSchedules.length
+  const selectedScopeKey = selectedSemester && selectedBatch
+    ? JSON.stringify([selectedProgram, selectedSemester, selectedBatch, selectedSection, selectedDate])
+    : "";
+
+  useEffect(() => {
+    if (!selectedScopeKey) {
+      return undefined;
+    }
+    let cancelled = false;
+    const params = { program: selectedProgram, semester: selectedSemester, batch: selectedBatch };
+    if (selectedSection !== "all") params.section = selectedSection;
+    if (selectedDate) params.date = selectedDate;
+    api.get("/timetable/imported/selected", { params })
+      .then((response) => {
+        if (cancelled) return;
+        setImportedSchedules(response.data.slots || []);
+        setLoadedScope(selectedScopeKey);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setImportedSchedules([]);
+        setLoadedScope(selectedScopeKey);
+        setLoadError(error.response?.data?.message || "Unable to load this timetable.");
+      })
+      ;
+    return () => { cancelled = true; };
+  }, [selectedProgram, selectedSemester, selectedBatch, selectedSection, selectedDate, selectedScopeKey]);
+
+  const data = selectedScopeKey && loadedScope === selectedScopeKey && importedSchedules.length
     ? buildRowsFromSchedules(importedSchedules)
-    : !user
-    ? weeklyTimetableMock.map((row) => ({
-        ...row,
-        schedule: row.schedule.map((cell) => (cell ? [cell] : cell))
-      }))
     : [];
   const subjectMap = getSubjectMap(data);
-  const section = user ? `${user.batch} · ${user.semester}` : "Sample CSE timetable";
-
-  const availableGroups = [
-    ...new Set(
-      data.flatMap((row) =>
-        row.schedule.flatMap((cell) => (cell && cell !== "covered" ? cell.flatMap((c) => c.groups || []) : []))
-      )
-    )
-  ].sort((a, b) => a - b);
-
-  // A row with no group tag at all (most classes) is shown regardless of the
-  // selected group. A row tagged with more than one group is shared, not
-  // split, so it also stays visible either way. Only a row exclusively
-  // tagged for the *other* group gets hidden.
+  const groupFilter = selectedSection === "all" ? "all" : selectedSection.replace(/^Group\s+/i, "");
+  const section = selectedBatch && selectedSemester ? `${selectedBatch} · ${selectedSemester}` : "Select a timetable";
+  const availableSemesters = [...new Set(timetableOptions.semesters
+    .filter((entry) => timetableOptions.programs.length <= 1 ? true : Boolean(selectedProgram) && entry.program === selectedProgram)
+    .map((entry) => entry.semester))].sort();
+  const availableBatches = [...new Set(timetableOptions.batches
+    .filter((entry) => entry.semester === selectedSemester && (timetableOptions.programs.length <= 1 || Boolean(selectedProgram)) && (!selectedProgram || entry.program === selectedProgram))
+    .map((entry) => entry.batch))].sort();
+  const availableSections = [...new Set(timetableOptions.sections
+    .filter((entry) => entry.semester === selectedSemester && entry.batch === selectedBatch && (!selectedProgram || entry.program === selectedProgram))
+    .map((entry) => entry.section))].sort((a, b) => Number(a.replace(/\D/g, "")) - Number(b.replace(/\D/g, "")));
   const matchesGroupFilter = (course) => {
     const groups = course.groups || [];
     return groupFilter === "all" || groups.length !== 1 || groups[0] === Number(groupFilter);
@@ -394,24 +425,127 @@ export default function TimeTable(props) {
           <h1>Weekly Timetable</h1>
           <p>Academic Year {props.year} · {section}</p>
         </div>
-        {availableGroups.length > 0 && (
+        <div className="timetable-selectors">
           <label className="group-filter">
-            GROUP
-            <select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
-              <option value="all">Both groups</option>
-              {availableGroups.map((g) => (
-                <option value={g} key={g}>
-                  Group {g}
-                </option>
-              ))}
+            VIEW DATE
+            <input className="timetable-date-input" type="date" value={selectedDate} onChange={(event) => {
+              setSelectedDate(event.target.value);
+              setLoadError("");
+            }} />
+          </label>
+          {timetableOptions.programs.length > 1 && (
+            <label className="group-filter">
+              PROGRAM
+              <select value={selectedProgram} disabled={optionsLoading} onChange={(event) => {
+                setSelectedProgram(event.target.value);
+                setSelectedSemester("");
+                setSelectedBatch("");
+                setSelectedSection("all");
+                setLoadError("");
+              }}>
+                <option value="">Select program</option>
+                {timetableOptions.programs.map((program) => <option key={program} value={program}>{program}</option>)}
+              </select>
+            </label>
+          )}
+          <label className="group-filter">
+            SEMESTER
+            <select value={selectedSemester} disabled={optionsLoading || availableSemesters.length === 0} onChange={(event) => {
+              setSelectedSemester(event.target.value);
+              setSelectedBatch("");
+              setSelectedSection("all");
+              setLoadError("");
+            }}>
+              <option value="">Select semester</option>
+              {availableSemesters.map((semester) => <option key={semester} value={semester}>{semester}</option>)}
             </select>
           </label>
-        )}
+          <label className="group-filter">
+            BATCH
+            <select value={selectedBatch} disabled={!selectedSemester || availableBatches.length === 0} onChange={(event) => {
+              const nextBatch = event.target.value;
+              const scope = timetableOptions.batches.find((entry) => entry.batch === nextBatch && entry.semester === selectedSemester && (!selectedProgram || entry.program === selectedProgram));
+              setSelectedProgram(scope?.program || selectedProgram);
+              setSelectedBatch(nextBatch);
+              setSelectedSection("all");
+              setLoadError("");
+            }}>
+              <option value="">Select batch</option>
+              {availableBatches.map((batch) => <option key={batch} value={batch}>{batch}</option>)}
+            </select>
+          </label>
+          <label className="group-filter">
+            SECTION
+            <select value={selectedSection} disabled={!selectedBatch || availableSections.length === 0} onChange={(event) => {
+              setSelectedSection(event.target.value);
+              setLoadError("");
+            }}>
+              <option value="all">All sections</option>
+              {availableSections.map((sectionName) => <option key={sectionName} value={sectionName}>{sectionName}</option>)}
+            </select>
+          </label>
+        </div>
       </header>
 
-      {user && loadError && <p className="schedule-empty">{loadError}</p>}
-      {user && !loadError && loaded && data.length === 0 && (
-        <p className="schedule-empty">No timetable is available in the database for {user.batch} {user.semester} yet.</p>
+      {isAdmin && selectedScopeKey && (
+        <ScheduleGenerator
+          program={selectedProgram}
+          semester={selectedSemester}
+          batch={selectedBatch}
+          availableBatches={availableBatches}
+          onSaved={(savedSchedules) => {
+            const visibleSchedules = savedSchedules.filter((slot) => (
+              slot.batch === selectedBatch && String(slot.semester) === String(selectedSemester) &&
+              (!selectedProgram || slot.program === selectedProgram)
+            ));
+            if (visibleSchedules.length) {
+              setImportedSchedules(visibleSchedules);
+              setLoadedScope(selectedScopeKey);
+            }
+          }}
+        />
+      )}
+      {isAdmin && (
+        <WhatIfPanel
+          onApplied={async (scenario) => {
+            const affectedScope = scenario?.affectedSchedules?.[0]?.original;
+            const nextProgram = affectedScope?.program || selectedProgram;
+            const nextSemester = affectedScope?.semester || selectedSemester;
+            const nextBatch = affectedScope?.batch || selectedBatch;
+            const nextSection = "all";
+            const appliedDate = scenario?.status === "applied" && !scenario.applyToWeeklyTemplate
+              ? new Date(scenario.disruptionDate).toISOString().slice(0, 10)
+              : selectedDate;
+            if (!nextSemester || !nextBatch) return;
+            setSelectedProgram(nextProgram);
+            setSelectedSemester(nextSemester);
+            setSelectedBatch(nextBatch);
+            setSelectedSection(nextSection);
+            if (appliedDate !== selectedDate) setSelectedDate(appliedDate);
+            try {
+              const response = await api.get("/timetable/imported/selected", {
+                params: {
+                  program: nextProgram,
+                  semester: nextSemester,
+                  batch: nextBatch,
+                  date: appliedDate || undefined
+                }
+              });
+              setImportedSchedules(response.data.slots || []);
+              setLoadedScope(JSON.stringify([nextProgram, nextSemester, nextBatch, nextSection, appliedDate]));
+            } catch {
+              setLoadError("Changes were applied, but the timetable could not be refreshed.");
+            }
+          }}
+        />
+      )}
+
+      {optionsLoading && <p className="schedule-empty">Loading available timetable choices...</p>}
+      {!optionsLoading && !loadError && !selectedScopeKey && <p className="schedule-empty">Select a semester and batch to view its timetable.</p>}
+      {loadError && <p className="schedule-empty">{loadError}</p>}
+      {selectedScopeKey && loadedScope !== selectedScopeKey && <p className="schedule-empty">Loading {selectedBatch} · {selectedSemester} timetable...</p>}
+      {selectedScopeKey && loadedScope === selectedScopeKey && !loadError && data.length === 0 && (
+        <p className="schedule-empty">No timetable is available in the database for {selectedBatch} · {selectedSemester}{selectedSection !== "all" ? ` · ${selectedSection}` : ""}.</p>
       )}
 
       {data.length > 0 && (
@@ -502,13 +636,13 @@ export default function TimeTable(props) {
                           const color = subjectMap.get(c.courseCode)?.color || "lime";
                           return (
                             <article
-                              className={`course-block block--${color}${c.isLab ? " course-block--lab" : ""}`}
+                              className={`course-block block--${c.isBreak ? "break" : color}${c.isLab ? " course-block--lab" : ""}${c.isBreak ? " course-block--break" : ""}`}
                               key={c._id || `${key}-${c.courseCode}-${c.roomNo}`}
                             >
-                              <h3 title={c.courseCode}>{c.courseCode}</h3>
-                              <p className="course-faculty" title={c.facultyName}>{c.facultyName}</p>
-                              <strong title={c.roomNo}>{c.roomNo}</strong>
-                              {isAdmin && (
+                              <h3 title={c.courseCode}>{c.isBreak ? "BREAK" : c.courseCode}</h3>
+                              <p className="course-faculty" title={c.courseName}>{c.isBreak ? c.courseName : c.facultyName}</p>
+                              {!c.isBreak && <strong title={c.roomNo}>{c.roomNo}</strong>}
+                              {isAdmin && !c.isBreak && (
                                 <button
                                   type="button"
                                   className="edit-hint"

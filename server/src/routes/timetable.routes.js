@@ -4,6 +4,8 @@ import {
   deleteSlot,
   getImportedTodayTimetable,
   getImportedWeeklyTimetable,
+  getImportedTimetableOptions,
+  getSelectedImportedTimetable,
   getTodayTimetable,
   getWeeklyTimetable,
   updateSlot
@@ -15,6 +17,8 @@ const router = express.Router();
 router.get("/today", protect, getTodayTimetable);
 router.get("/weekly", protect, getWeeklyTimetable);
 router.get("/imported/today", protect, getImportedTodayTimetable);
+router.get("/imported/options", protect, getImportedTimetableOptions);
+router.get("/imported/selected", protect, getSelectedImportedTimetable);
 router.get("/imported/weekly", protect, getImportedWeeklyTimetable);
 router.post("/", protect, createSlot);
 router.put("/:id", protect, updateSlot);

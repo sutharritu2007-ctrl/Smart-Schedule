@@ -87,6 +87,34 @@ html, body {
   outline: none;
 }
 
+.timetable-date-input {
+  background: var(--schedule-surface);
+  border: 1px solid #35302b;
+  border-radius: 10px;
+  color: var(--schedule-text);
+  font-family: Poppins, Inter, sans-serif;
+  font-size: 14px;
+  min-height: 39px;
+  padding: 8px 10px;
+}
+
+.timetable-date-input:focus {
+  border-color: var(--lime);
+  outline: none;
+}
+
+.timetable-selectors {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.timetable-selectors .group-filter {
+  min-width: 144px;
+}
+
 .schedule-badge {
   align-items: center;
   display: grid;
@@ -349,6 +377,20 @@ html, body {
   color: var(--orange-text);
 }
 
+.block--break {
+  background: #ded7cd;
+  border: 1px dashed #8b8175;
+  color: #302b25;
+}
+
+.course-block--break {
+  justify-content: center;
+}
+
+.course-block--break .course-faculty {
+  opacity: 1;
+}
+
 .schedule-sidebar {
   display: grid;
   gap: 28px;
@@ -433,6 +475,16 @@ html, body {
   .schedule-hero {
     display: grid;
     margin-bottom: 24px;
+  }
+
+  .timetable-selectors {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: stretch;
+  }
+
+  .timetable-selectors .group-filter {
+    min-width: 0;
   }
 
   .schedule-hero h1 {

@@ -101,6 +101,22 @@ function TodayClassCard({ data }) {
   );
 }
 
+function TodayBreakCard({ data }) {
+  return (
+    <article className="class-card class-card--break">
+      <div className="class-card__header">
+        <span className="class-card__time">{formatSeedTime(data.startTime)} - {formatSeedTime(data.endTime)}</span>
+        <span className="badge badge--break">BREAK</span>
+      </div>
+      <h3>{data.courseCode}</h3>
+      <hr />
+      <p className="class-card__title">No replacement was available for this class.</p>
+      {data.reason && <p className="class-card__reason">{data.reason}</p>}
+      <div className="class-card__meta"><span>{data.roomNo}</span></div>
+    </article>
+  );
+}
+
 function DashboardNotifications() {
   const [notifications, setNotifications] = useState([]);
 
@@ -140,17 +156,16 @@ function DashboardNotifications() {
 function Dashboard() {
   const { user } = useAuth();
   const [todaysImportedClasses, setTodaysImportedClasses] = useState([]);
+  const [todaysBreaks, setTodaysBreaks] = useState([]);
 
   useEffect(() => {
-    if (!user) {
-      setTodaysImportedClasses([]);
-      return;
-    }
+    if (!user) return;
 
     api
       .get("/timetable/imported/today")
       .then((response) => {
         const classes = response.data.classes || [];
+        setTodaysBreaks(response.data.breaks || []);
         // Temporary debug logging — remove once confirmed working against
         // the deployed backend. Tells you whether the API itself is
         // returning data, vs the old client-side filter eating it.
@@ -160,6 +175,7 @@ function Dashboard() {
       .catch((error) => {
         console.log("[dashboard] failed to load today's classes:", error);
         setTodaysImportedClasses([]);
+        setTodaysBreaks([]);
       });
   }, [user]);
 
@@ -170,7 +186,7 @@ function Dashboard() {
     <div className="dashboard">
       <h1>Today's Schedule</h1>
       <br/>
-      <h3 className=''>{dayjs().format('dddd, DD MMM YYYY')} - {todaysClasses.length} Classes Scheduled </h3><br/><br/>
+      <h3 className=''>{dayjs().format('dddd, DD MMM YYYY')} - {todaysClasses.length} Classes Scheduled · {todaysBreaks.length} Breaks</h3><br/><br/>
 
       {todaysClasses.length === 0 ?
         (<p className="empty-day">No classes today</p>)
@@ -179,6 +195,11 @@ function Dashboard() {
             <TodayClassCard data={cls} key={`today-${cls.startTime}-${cls.courseCode}`} />
           ))}
         </div>)}
+      {todaysBreaks.length > 0 && (
+        <div className="today-schedule-row today-break-row">
+          {todaysBreaks.map((entry) => <TodayBreakCard data={entry} key={`break-${entry._id}`} />)}
+        </div>
+      )}
 
       <DashboardNotifications />
     </div>

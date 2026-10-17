@@ -57,7 +57,7 @@ function App() {
       <div className={`webpage ${navBar ? 'nav-open' : ''}`}>
         <aside className={`navbar ${navBar ? 'open' : ''}`}>
           <div id="head">
-            <h1>IIIT<span className="gold">Surat</span><span className="teal">Mods</span></h1>
+            <h1>SMART<span className="gold">SCHED</span><span className="teal">ULE</span></h1>
             <div className="nav-accent-bars" aria-hidden="true">
               <span></span><span></span><span></span><span></span><span></span>
             </div>

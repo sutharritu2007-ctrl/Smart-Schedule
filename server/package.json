@@ -11,7 +11,8 @@
     "extract:syllabus-text": "python scripts/extractSyllabusText.py",
     "seed:timetables": "node scripts/seedTimetableData.js",
     "seed:syllabus": "node scripts/seedSyllabusData.js",
-    "make:admin": "node scripts/makeAdmin.js"
+    "make:admin": "node scripts/makeAdmin.js",
+    "test:timetable:integration": "node scripts/verifyTimetableWorkflows.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

@@ -58,6 +58,25 @@
   border-top-color: var(--lime);
 }
 
+.class-card--break {
+  border-top-color: var(--gold);
+}
+
+.badge--break {
+  background: #ded7cd;
+  color: #302b25;
+}
+
+.class-card__reason {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.today-break-row {
+  margin-top: 12px;
+}
+
 .class-card__header {
   display: flex;
   justify-content: space-between;
