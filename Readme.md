@@ -1,4 +1,4 @@
-# SmartSchedule
+# Smart Schedule
 
 **Smart College Timetable Management & Optimization System**
 
