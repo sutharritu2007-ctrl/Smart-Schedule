@@ -1,128 +1,406 @@
 # SmartSchedule
 
-Timetable management and optimization for IIIT Surat.
+**Smart College Timetable Management & Optimization System**
 
-> **Status: Phase 1, project foundation.** The application shell, the Express API with a health check, and the
-> frontend-to-backend connection are in place. Timetable generation, academic data management, optimization,
-> authentication and database connectivity are **not implemented yet**.
+SmartSchedule is a college timetable management and optimization system designed for IIIT Surat. Its long-term goal is to help generate conflict-free academic schedules by accounting for faculty availability, classroom capacity, student batches, and course requirements, while reducing idle time and improving resource utilization.
 
-## Stack
+> **Current Status: Phase 1 | Project Foundation**
+>
+> The initial application shell, Express API health check, and frontend-to-backend communication are implemented. Academic data management, timetable generation, optimization, authentication, and database connectivity are planned for future phases.
 
-| Layer    | Technology                                        |
-| -------- | ------------------------------------------------- |
-| Frontend | React 19, Vite, TypeScript, Tailwind CSS v4       |
-| Backend  | Node.js, Express 4, TypeScript, zod (env checks)  |
-| Database | MongoDB with Mongoose (planned; not connected yet) |
+---
+
+## Table of Contents
+
+- [Project Overview](#project-overview)
+- [Problem Statement](#problem-statement)
+- [Planned Features](#planned-features)
+- [Technology Stack](#technology-stack)
+- [Prerequisites](#prerequisites)
+- [Getting Started](#getting-started)
+- [Available Commands](#available-commands)
+- [Environment Configuration](#environment-configuration)
+- [Frontend and Backend Communication](#frontend-and-backend-communication)
+- [Project Structure](#project-structure)
+- [Development Roadmap](#development-roadmap)
+- [Current Limitations](#current-limitations)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
+## Project Overview
+
+Creating an effective college timetable involves coordinating multiple interconnected constraints:
+
+- Faculty availability and teaching workload
+- Classroom and laboratory capacity
+- Student batches, branches, and semesters
+- Course requirements and session durations
+- Conflicts between faculty, rooms, and student groups
+- Efficient use of available time slots and academic resources
+
+SmartSchedule aims to bring these constraints into a single system, making academic scheduling more systematic, transparent, and efficient.
+
+The project is being developed incrementally, starting with the application foundation before introducing academic data management, scheduling constraints, and timetable optimization.
+
+## Problem Statement
+
+Develop an intelligent system that generates conflict-free college timetables by considering faculty availability, classroom capacity, student batches, and course requirements.
+
+The system should optimize schedules to minimize idle time, balance workloads, and maximize resource utilization.
+
+## Planned Features
+
+The following capabilities represent the intended project direction. They are not all implemented yet.
+
+### 1. Academic Data Management
+- Manage branches, academic years, semesters, and student batches.
+- Maintain course and subject information.
+- Manage faculty profiles and teaching assignments.
+- Maintain classroom and laboratory details.
+
+### 2. Scheduling Constraints
+- Define working days, time slots, breaks, and holidays.
+- Configure faculty availability and workload limits.
+- Account for room capacity and facility requirements.
+- Prevent faculty, classroom, and student-batch conflicts.
+
+### 3. Intelligent Timetable Generation
+- Generate schedules that satisfy mandatory constraints.
+- Assign courses to suitable time slots and rooms.
+- Identify infeasible scheduling requirements.
+- Validate generated schedules independently.
+
+### 4. Timetable Optimization
+- Reduce unnecessary gaps in student schedules.
+- Balance faculty teaching workloads.
+- Improve classroom and laboratory utilization.
+- Compare alternative schedules using transparent quality metrics.
+
+### 5. Timetable Management
+- View schedules by batch, faculty, or classroom.
+- Support controlled manual edits.
+- Validate changes against scheduling constraints.
+- Maintain draft and published timetable versions.
+
+### 6. Advanced Scheduling Assistance
+- Explain scheduling conflicts and infeasible requirements.
+- Explore hypothetical changes without modifying the original schedule.
+- Repair schedules while minimizing unnecessary changes.
+- Support academic data import, timetable export, and analytics.
+
+---
+
+## Technology Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 19 |
+| Development Server and Bundler | Vite |
+| Language | TypeScript |
+| Styling | Tailwind CSS v4 |
+| Backend | Node.js |
+| API Framework | Express 4 |
+| Environment Validation | Zod |
+| Planned Database | MongoDB |
+| Planned ODM | Mongoose |
+| Testing | Node.js built-in test runner |
+
+**Note:** MongoDB and Mongoose are planned for a later phase. Database connectivity is not implemented in the current foundation.
+
+---
 
 ## Prerequisites
 
-- **Node.js 22.12 or newer** (`node -v`) and npm 10+
-- Git (optional)
-- MongoDB is **not required** for this phase
+Install the following before running the project:
 
-## Setup
+- **Node.js:** Version 22.12 or newer
+- **npm:** Version 10 or newer
+- **Git:** Optional, for version control
+
+Verify your installations:
 
 ```bash
-# from the repository root
-npm install          # installs both workspaces (client and server)
+node -v
+npm -v
+git --version
 ```
 
-Environment files are optional in this phase because every variable has a default. To customize:
+MongoDB is not required for the current phase.
+
+---
+
+## Getting Started
+
+### 1. Clone the repository
+
+If you are setting up the project from GitHub:
+
+```bash
+git clone <your-repository-url>
+cd SmartSchedule
+```
+
+Replace `<your-repository-url>` with your actual GitHub repository URL.
+
+If you already have the project locally, open a terminal in the repository root instead.
+
+### 2. Install dependencies
+
+Run this command from the root directory:
+
+```bash
+npm install
+```
+
+The project uses npm workspaces to manage the frontend and backend dependencies.
+
+### 3. Configure environment variables (optional)
+
+Environment files are optional during Phase 1 because the application has default configuration values.
+
+To create local environment files:
+
+**macOS / Linux**
 
 ```bash
 cp server/.env.example server/.env
 cp client/.env.example client/.env
 ```
 
-On Windows PowerShell use `Copy-Item` instead of `cp`.
+**Windows PowerShell**
 
-## Run
+```powershell
+Copy-Item server/.env.example server/.env
+Copy-Item client/.env.example client/.env
+```
+
+Review the environment variables before changing their values.
+
+### 4. Start the application
+
+From the repository root:
 
 ```bash
-npm run dev          # starts API (http://localhost:4000) and web app (http://localhost:5173)
+npm run dev
 ```
 
-Or run them separately in two terminals:
+This starts both the backend API and the frontend development server.
+
+Open the application at:
+
+**Frontend:** http://localhost:5173
+
+**Backend health check:** http://localhost:4000/api/health
+
+The dashboard includes an API status indicator. If the backend becomes unavailable, the interface displays an unreachable status and provides a retry option. Once the API becomes available again, the frontend can reconnect.
+
+### 5. Run the applications separately (optional)
+
+To start the backend in one terminal:
 
 ```bash
-npm run dev:server   # API only
-npm run dev:client   # web app only
+npm run dev:server
 ```
 
-Open http://localhost:5173. The top bar shows whether the API is reachable. Stop the API and it switches to
-"API unreachable" with a Retry button; start it again and the page reconnects automatically.
+To start the frontend in another terminal:
 
-You can also check the API directly: http://localhost:4000/api/health
-
-## Commands
-
-| Command             | What it does                                                  |
-| ------------------- | ------------------------------------------------------------- |
-| `npm run dev`       | Start API and web app together with live reload               |
-| `npm run build`     | Compile the API to `server/dist` and bundle the web app to `client/dist` |
-| `npm run typecheck` | Type-check both projects without emitting files               |
-| `npm test`          | Run API tests (Node's built-in test runner)                   |
-| `npm run start -w server` | Run the compiled API (after `npm run build`)            |
-
-## Environment variables
-
-**`server/.env`**
-
-| Variable        | Default                 | Notes                                                              |
-| --------------- | ----------------------- | ------------------------------------------------------------------ |
-| `NODE_ENV`      | `development`           | `development`, `test` or `production`                              |
-| `PORT`          | `4000`                  | API port                                                           |
-| `CLIENT_ORIGIN` | `http://localhost:5173` | Origin allowed by CORS                                             |
-| `MONGODB_URI`   | unset                   | Optional and unused. If set, only its format is checked at startup |
-
-Invalid values stop the server at startup with a message naming the variable and how to fix it.
-
-**`client/.env`**
-
-| Variable            | Default                 | Notes                                                                 |
-| ------------------- | ----------------------- | --------------------------------------------------------------------- |
-| `API_PROXY_TARGET`  | `http://localhost:4000` | Dev proxy target; must match the API `PORT`. Not bundled into the app |
-| `VITE_API_BASE_URL` | `/api`                  | Optional absolute API URL for production on a different origin        |
-
-Real `.env` files are git-ignored. Never commit credentials; commit only the `.env.example` files.
-
-## How the frontend reaches the backend
-
-In development the browser only talks to the Vite server. Vite forwards every `/api/*` request to Express
-(see `client/vite.config.ts`), so there is no CORS setup to manage locally. In production, serve the built client
-and the API from the same origin, or set `VITE_API_BASE_URL`.
-
-## Project structure
-
+```bash
+npm run dev:client
 ```
-smartschedule/
-├── package.json            npm workspaces + root scripts
-├── client/                 React + Vite + TypeScript
-│   ├── vite.config.ts      dev server, /api proxy, "@" alias
-│   ├── components.json     shadcn/ui configuration for future components
+
+Keep both processes running while developing the application.
+
+---
+
+## Available Commands
+
+Run these commands from the repository root.
+
+| Command | Description |
+|---|---|
+| `npm install` | Install dependencies for the workspaces |
+| `npm run dev` | Start frontend and backend together |
+| `npm run dev:client` | Start the frontend development server |
+| `npm run dev:server` | Start the backend development server |
+| `npm run build` | Build the frontend and backend |
+| `npm run typecheck` | Type-check both projects |
+| `npm test` | Run the configured API tests |
+| `npm run start -w server` | Start the compiled backend after building |
+
+---
+
+## Environment Configuration
+
+### Backend: `server/.env`
+
+| Variable | Default | Description |
+|---|---|---|
+| `NODE_ENV` | `development` | Runtime environment: development, test, or production |
+| `PORT` | `4000` | Port used by the Express API |
+| `CLIENT_ORIGIN` | `http://localhost:5173` | Frontend origin allowed by the CORS configuration |
+| `MONGODB_URI` | Unset | Optional in Phase 1; its format is validated if provided, but the database is not connected |
+
+Invalid environment values cause the server to report a configuration error at startup.
+
+### Frontend: `client/.env`
+
+| Variable | Default | Description |
+|---|---|---|
+| `API_PROXY_TARGET` | `http://localhost:4000` | Backend target for the Vite development proxy |
+| `VITE_API_BASE_URL` | `/api` | API base URL used by the frontend |
+
+The development proxy target should match the port on which the backend is running.
+
+**Security:** Never commit real credentials, API keys, or secrets. Commit the example environment files instead of your personal `.env` files.
+
+---
+
+## Frontend and Backend Communication
+
+During local development, the frontend sends API requests to the Vite development server. Requests beginning with `/api` are forwarded to the Express backend through the proxy configured in `client/vite.config.ts`.
+
+This provides a straightforward local development setup without requiring the browser to communicate directly with a separate backend origin.
+
+The backend exposes a health-check endpoint:
+
+```http
+GET /api/health
+```
+
+You can test it by opening:
+
+http://localhost:4000/api/health
+
+The frontend uses the health-check endpoint to determine whether the backend is reachable.
+
+For production deployment, configure the frontend and backend to use the same origin or provide an appropriate API base URL and server configuration.
+
+---
+
+## Project Structure
+
+```text
+SmartSchedule/
+├── package.json
+│   └── Root npm workspaces and shared scripts
+│
+├── client/
+│   ├── vite.config.ts
+│   │   └── Vite configuration, API proxy, and path alias
+│   ├── components.json
+│   │   └── shadcn/ui configuration
 │   └── src/
-│       ├── components/     layout/, common/, dashboard/, ui/ (button, badge)
-│       ├── config/         navigation.ts (single source for sidebar + routes)
-│       ├── hooks/          backend-status.tsx (health polling)
-│       ├── lib/            api.ts, health.ts, utils.ts
-│       └── pages/          DashboardPage, PlaceholderPage, NotFoundPage
-└── server/                 Express + TypeScript
+│       ├── components/
+│       │   ├── layout/
+│       │   ├── common/
+│       │   ├── dashboard/
+│       │   └── ui/
+│       ├── config/
+│       │   └── navigation.ts
+│       ├── hooks/
+│       │   └── backend-status.tsx
+│       ├── lib/
+│       │   ├── api.ts
+│       │   ├── health.ts
+│       │   └── utils.ts
+│       └── pages/
+│           ├── DashboardPage
+│           ├── PlaceholderPage
+│           └── NotFoundPage
+│
+└── server/
     └── src/
-        ├── config/         env.ts (validation), constants.ts
-        ├── middleware/     notFound.ts, errorHandler.ts
-        ├── routes/         index.ts, health.ts
-        ├── app.ts          builds the Express app (no listening; testable)
-        └── index.ts        loads env, starts the server
+        ├── config/
+        │   ├── env.ts
+        │   └── constants.ts
+        ├── middleware/
+        │   ├── notFound.ts
+        │   └── errorHandler.ts
+        ├── routes/
+        │   ├── index.ts
+        │   └── health.ts
+        ├── app.ts
+        │   └── Express application configuration
+        └── index.ts
+            └── Server startup
 ```
 
-## Adding sections later
+*The tree highlights the main application files. Some filenames may have extensions such as `.tsx` or `.ts`, and additional configuration files may exist in the repository.*
 
-Add an entry to `client/src/config/navigation.ts`. Unbuilt sections (`implemented: false`) automatically get a
-route, a sidebar item and an empty-state page. When a section is built, set `implemented: true` and register its
-real page in `App.tsx`.
+### Architecture Notes
 
-## Not implemented yet
+- **`client/src/config/navigation.ts`:** Central configuration for sidebar navigation and application routes.
+- **`client/src/hooks/backend-status.tsx`:** Tracks the backend health status for the frontend.
+- **`client/src/lib/api.ts`:** Shared API communication utilities.
+- **`server/src/config/env.ts`:** Validates environment configuration.
+- **`server/src/routes/health.ts`:** Defines the backend health-check endpoint.
+- **`server/src/app.ts`:** Configures the Express application separately from server startup, making it easier to test.
+- **`server/src/index.ts`:** Loads configuration and starts the server.
 
-Database connection (Mongoose is not installed yet), academic data CRUD, availability, timetable generation,
-optimization, reports, authentication, AI features.
+---
+
+## Development Roadmap
+
+SmartSchedule is being developed in phases to keep the architecture understandable, testable, and maintainable.
+
+| Phase | Focus | Status |
+|---|---|---|
+| Phase 1 | Project setup, application shell, API health check, and frontend-backend communication | In progress / foundation implemented |
+| Phase 2 | Academic data management and CRUD operations | Planned |
+| Phase 3 | Calendar configuration, availability, and scheduling constraints | Planned |
+| Phase 4 | Initial conflict-free timetable generation | Planned |
+| Phase 5 | Timetable optimization and candidate comparison | Planned |
+| Phase 6 | Timetable editing, publishing, and version management | Planned |
+| Phase 7 | Conflict explanations, what-if simulations, and schedule repair | Planned |
+| Phase 8 | Data import/export and analytics | Planned |
+| Phase 9 | Authentication, testing, security, and production readiness | Planned |
+
+The roadmap may evolve as requirements are validated and the system develops.
+
+---
+
+## Current Limitations
+
+The current version focuses exclusively on the project foundation.
+
+The following capabilities are not implemented yet:
+
+- MongoDB connection and persistent academic records
+- Academic data CRUD operations
+- Faculty availability and workload scheduling
+- Classroom and laboratory allocation
+- Timetable generation and constraint solving
+- Timetable optimization and quality scoring
+- Manual schedule editing and publishing
+- Reports, analytics, and data import/export
+- Authentication and role-based access control
+- AI-assisted scheduling features
+
+The application should not yet be considered a functional timetable generator.
+
+---
+
+## Contributing
+
+SmartSchedule is being developed incrementally. Contributions should preserve the existing architecture and focus on the currently active development phase.
+
+Before submitting changes:
+
+1. Understand the existing implementation.
+2. Keep changes focused and avoid unnecessary refactoring.
+3. Run the relevant type checks, builds, and tests.
+4. Update documentation when behavior or configuration changes.
+5. Never commit credentials or other sensitive configuration.
+
+For new modules, prefer reusable components, clear API boundaries, server-side validation, and explicit error handling.
+
+---
+
+## License
+
+No license has been specified yet.
+
+Until a license is added to the repository, permissions for reuse, modification, and redistribution should not be assumed. Add an appropriate `LICENSE` file when the project is ready to establish its licensing terms.
 
