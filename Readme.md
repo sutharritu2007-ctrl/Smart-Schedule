@@ -1,62 +1,128 @@
-# 🎓 IIIT Surat Modifications
+# SmartSchedule
 
-Welcome to the official repository for the IIIT Surat MODs! This is an open-source, student-led platform designed to streamline timetables, course syllabi, and academic materials for our college community.
+Timetable management and optimization for IIIT Surat.
 
-The architecture and database schema follow the official blueprints outlined in our project design documentation.
+> **Status: Phase 1, project foundation.** The application shell, the Express API with a health check, and the
+> frontend-to-backend connection are in place. Timetable generation, academic data management, optimization,
+> authentication and database connectivity are **not implemented yet**.
 
----
+## Stack
 
-## 📁 Repository Structure
+| Layer    | Technology                                        |
+| -------- | ------------------------------------------------- |
+| Frontend | React 19, Vite, TypeScript, Tailwind CSS v4       |
+| Backend  | Node.js, Express 4, TypeScript, zod (env checks)  |
+| Database | MongoDB with Mongoose (planned; not connected yet) |
 
-The project is split into two main sections:
-- **`client/`** - The React.js frontend application (The Face).
-- **`server/`** - The Node.js & Express.js backend API (The Engine).
+## Prerequisites
 
----
+- **Node.js 22.12 or newer** (`node -v`) and npm 10+
+- Git (optional)
+- MongoDB is **not required** for this phase
 
-## 🛠️ Tech Stack
-- **Frontend:** React.js, React Router
-- **Backend:** Node.js, Express.js
-- **Database:** MongoDB (via Mongoose)
+## Setup
 
----
-
-## 🚀 Getting Started Locally
-
-To run this project on your machine, you will need to open **two separate terminal windows**—one to run the frontend interface and one to run the backend server.
-
-### 1. Frontend Setup (React)
-Open your first terminal window and run:
 ```bash
-cd client
-npm install
-npm run dev
+# from the repository root
+npm install          # installs both workspaces (client and server)
 ```
 
-### 2. Backend Setup (Express)
-Open your second terminal window and run:
+Environment files are optional in this phase because every variable has a default. To customize:
+
 ```bash
-cd server
-npm install
-npm run dev
+cp server/.env.example server/.env
+cp client/.env.example client/.env
 ```
 
-### 3. Timetable Scheduler (FastAPI + OR-Tools)
-The admin timetable generator needs the Python scheduling service running as well. In a third terminal:
+On Windows PowerShell use `Copy-Item` instead of `cp`.
+
+## Run
+
 ```bash
-cd server
-python -m pip install -r scheduler/requirements.txt
-uvicorn main:app --app-dir scheduler --reload --port 8000
+npm run dev          # starts API (http://localhost:4000) and web app (http://localhost:5173)
 ```
-The Express API forwards admin generation requests to `http://127.0.0.1:8000` by default; set `SCHEDULER_URL` in the server environment to use another address. The generator takes course requirements and classroom capacities entered by the admin, previews up to three CP-SAT alternatives, then replaces the saved timetable for that program, batch, and semester only after confirmation. Admins can opt to apply the entered course requirements across all existing batches in the selected semester; all batch assignments are solved together and saved transactionally. Lab enrollment is not filtered by seat capacity; labs are matched by room type.
 
-### Timetable scopes and What-If scenarios
-The timetable page loads its program, semester, batch, and lab-group options from active MongoDB schedule records. Student accounts are restricted server-side to their profile batch and semester; administrators can choose among existing schedule scopes. `GET /api/timetable/imported/options` returns permitted options and `GET /api/timetable/imported/selected` requires a semester and batch (and filters a selected `Group N` on the server).
+Or run them separately in two terminals:
 
-Administrators can analyze and persist faculty-absence or room-maintenance scenarios through `GET/POST /api/admin/what-if`, then explicitly reject or apply a proposal through `/api/admin/what-if/:id/reject` and `/api/admin/what-if/:id/apply`. If no replacement is available, the admin can mark affected classes as breaks for that date and notify students; this stores dated exceptions and does not cancel the recurring weekly classes. Applying changes uses MongoDB transactions and optimistic `updatedAt` checks, so it requires a replica-set MongoDB deployment. Run `npm run test:timetable:integration` from `server/` to smoke-test the selected-scope and What-If workflows against the configured database.
+```bash
+npm run dev:server   # API only
+npm run dev:client   # web app only
+```
 
-The current schedule model contains weekly recurring rows and inline lab group labels; it does not store one-off dated overrides, faculty qualifications/availability records, student counts, room capacities, or equipment requirements. Accordingly, What-If analysis infers faculty qualification from existing assignments to the same course, treats the selected date as its weekday, requires explicit acknowledgement before editing the recurring weekly template, and will not mark room reassignment conflict-free without capacity/equipment data. It reports unresolved cases rather than applying an unverified change. A one-date reschedule and fully verified room reassignment require extending those source models first.
+Open http://localhost:5173. The top bar shows whether the API is reachable. Stop the API and it switches to
+"API unreachable" with a Retry button; start it again and the page reconnects automatically.
 
-To verify the student-weighted CP-SAT objective, run `python -m unittest test_student_objective.py` from `server/scheduler/`.
----
+You can also check the API directly: http://localhost:4000/api/health
+
+## Commands
+
+| Command             | What it does                                                  |
+| ------------------- | ------------------------------------------------------------- |
+| `npm run dev`       | Start API and web app together with live reload               |
+| `npm run build`     | Compile the API to `server/dist` and bundle the web app to `client/dist` |
+| `npm run typecheck` | Type-check both projects without emitting files               |
+| `npm test`          | Run API tests (Node's built-in test runner)                   |
+| `npm run start -w server` | Run the compiled API (after `npm run build`)            |
+
+## Environment variables
+
+**`server/.env`**
+
+| Variable        | Default                 | Notes                                                              |
+| --------------- | ----------------------- | ------------------------------------------------------------------ |
+| `NODE_ENV`      | `development`           | `development`, `test` or `production`                              |
+| `PORT`          | `4000`                  | API port                                                           |
+| `CLIENT_ORIGIN` | `http://localhost:5173` | Origin allowed by CORS                                             |
+| `MONGODB_URI`   | unset                   | Optional and unused. If set, only its format is checked at startup |
+
+Invalid values stop the server at startup with a message naming the variable and how to fix it.
+
+**`client/.env`**
+
+| Variable            | Default                 | Notes                                                                 |
+| ------------------- | ----------------------- | --------------------------------------------------------------------- |
+| `API_PROXY_TARGET`  | `http://localhost:4000` | Dev proxy target; must match the API `PORT`. Not bundled into the app |
+| `VITE_API_BASE_URL` | `/api`                  | Optional absolute API URL for production on a different origin        |
+
+Real `.env` files are git-ignored. Never commit credentials; commit only the `.env.example` files.
+
+## How the frontend reaches the backend
+
+In development the browser only talks to the Vite server. Vite forwards every `/api/*` request to Express
+(see `client/vite.config.ts`), so there is no CORS setup to manage locally. In production, serve the built client
+and the API from the same origin, or set `VITE_API_BASE_URL`.
+
+## Project structure
+
+```
+smartschedule/
+├── package.json            npm workspaces + root scripts
+├── client/                 React + Vite + TypeScript
+│   ├── vite.config.ts      dev server, /api proxy, "@" alias
+│   ├── components.json     shadcn/ui configuration for future components
+│   └── src/
+│       ├── components/     layout/, common/, dashboard/, ui/ (button, badge)
+│       ├── config/         navigation.ts (single source for sidebar + routes)
+│       ├── hooks/          backend-status.tsx (health polling)
+│       ├── lib/            api.ts, health.ts, utils.ts
+│       └── pages/          DashboardPage, PlaceholderPage, NotFoundPage
+└── server/                 Express + TypeScript
+    └── src/
+        ├── config/         env.ts (validation), constants.ts
+        ├── middleware/     notFound.ts, errorHandler.ts
+        ├── routes/         index.ts, health.ts
+        ├── app.ts          builds the Express app (no listening; testable)
+        └── index.ts        loads env, starts the server
+```
+
+## Adding sections later
+
+Add an entry to `client/src/config/navigation.ts`. Unbuilt sections (`implemented: false`) automatically get a
+route, a sidebar item and an empty-state page. When a section is built, set `implemented: true` and register its
+real page in `App.tsx`.
+
+## Not implemented yet
+
+Database connection (Mongoose is not installed yet), academic data CRUD, availability, timetable generation,
+optimization, reports, authentication, AI features.
 
